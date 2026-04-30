@@ -386,3 +386,11 @@ None at design time. All scoping decisions resolved Q1–Q4.
 - §3 design — approved 2026-04-30
 - §4 design — approved 2026-04-30 (folded into §2)
 - This consolidated spec — pending user review
+
+## Phase 2 smoke test results (filled after fresh session)
+
+- [ ] crystal-multi-agent-orchestration auto-loaded: yes/no
+- [ ] crystal-infra-recovery auto-loaded: yes/no
+- [ ] crystal-plugin-dev auto-loaded: yes/no
+- [ ] CLAUDE.md persona keywords still in default context: yes/no
+- [ ] CLAUDE.md token load reduced from baseline: yes/no (estimate)
