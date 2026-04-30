@@ -1,0 +1,23 @@
+{
+  "name": "obsidian-claude-config",
+  "description": "Crystal's personal Claude Code customization for working with multiple Obsidian vaults. Provides skills for multi-agent orchestration patterns, infra recovery (APFS sparse / Vite hangs / editor CSS), Crystal-specific plugin development gotchas, and an English-description note frontmatter standard. Adapted from johnfkoo951/cmds-system-files (CMDS v4.2).",
+  "version": "0.1.0",
+  "author": {
+    "name": "crystal0224",
+    "email": "bae47659568@gmail.com"
+  },
+  "homepage": "https://github.com/crystal0224/obsidian-claude-config",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/crystal0224/obsidian-claude-config.git"
+  },
+  "keywords": [
+    "claude-code",
+    "obsidian",
+    "pkm",
+    "multi-agent",
+    "skills"
+  ],
+  "skills": "./skills/",
+  "commands": "./commands/"
+}
