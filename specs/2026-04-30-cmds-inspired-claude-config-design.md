@@ -394,3 +394,10 @@ None at design time. All scoping decisions resolved Q1–Q4.
 - [ ] crystal-plugin-dev auto-loaded: yes/no
 - [ ] CLAUDE.md persona keywords still in default context: yes/no
 - [ ] CLAUDE.md token load reduced from baseline: yes/no (estimate)
+
+## Phase 3 smoke test results (filled after fresh session)
+
+- [ ] crystal-note-frontmatter auto-loaded on "새 Permanent Note 만들어줘": yes/no
+- [ ] crystal-note-frontmatter prompts for English description: yes/no
+- [ ] /desc-check runs and produces MISSING/KOREAN/LOWINFO output: yes/no
+- [ ] /desc-check correctly exempts daily/clipping/scratch types: yes/no
