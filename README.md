@@ -25,11 +25,11 @@ A plugin that customizes Claude Code (`~/.claude/`) to work fluently across Crys
 
 ## Status
 
-🟡 **Design phase complete, implementation pending.**
+🟡 **Phase 1 (§3) complete. Phase 2/3 pending.**
 
 - [x] Spec written and committed
-- [ ] §3 — `command-type` field added to 24 commands + CLAUDE.md rule paragraph
-- [ ] §1 — 3 skills extracted; CLAUDE.md slimmed to ~80 lines
+- [x] §3 — `command-type` field added to 24 commands + CLAUDE.md rule paragraph
+- [ ] §1 — 3 skills extracted; CLAUDE.md slimmed to ~120 lines
 - [ ] §2 + §4 — `crystal-note-frontmatter` skill + `/desc-check` command
 
 ## Install (post-implementation)
