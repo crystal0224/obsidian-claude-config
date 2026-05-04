@@ -1108,3 +1108,182 @@ Phase 2 — Worker D + DGO 매 변경 자동
 
 근거: v5 세션 Worker G rate limit + DGO 8 Gate 매 변경 검증 + 사용자 자료 수집·분석 강조
 
+---
+
+# v1.5.0 (2026-05-05) — Self-contained Orchestrator + Phase 2.5 (Copy Editor + Per-Page Reviewer + Layout Compositor) + 거버닝 6번째 규칙 + 부동산×문서 매핑 11 케이스
+
+> v6 풀덱 stress-test 세션 발견 4 critical (표지 footer / p.5 우측 잘림 / p.6 거버닝 비직관 / p.9·p.11 의미 fit) 통합 + 사용자 시각 검토 layer 일부 자동화 + orchestrate-audit pattern 이식 = self-contained orchestrator.
+
+## Self-contained 동작 (v1.4.0 → v1.5)
+
+**v1.4.0**: `/orchestrate-audit` 슬래시 + rfp-orchestrator skill 로드 = 2-step trigger
+**v1.5**: rfp-orchestrator skill 로드 = self-contained — orchestrate-audit pattern 직접 embed, references/ 7 파일 (worker_template / auditor_template / auditor_user_reviewable_template / topology_guide / session_init / kosis_setup / worker_f_prompt) 모두 SKILL 디렉토리 내
+
+### 트리거 시 자동 dispatch sequence
+1. **Phase 0** Onboarding (6 질문 short-form, v1.1.0+)
+2. **Phase 1A** 4 Worker (A·B·C·F) 병렬 dispatch (background) + 즉시 Auditor 4 짝 dispatch
+3. **Phase 1B** RO Round 1B 통합 (Main 직접) — cross-reference + 충돌 + 4 카테고리 압축
+4. **Crystal `go all` default** (자동 mode) 또는 batch 결정
+5. **Phase 2** Worker D + DGO 11 Gate 매 변경 자동
+6. **Phase 2.5 (v1.5 신설)** Worker H (Copy Editor) + Worker I (Per-Page Reviewer) + Layout Compositor 병렬 dispatch
+7. **Final Auditor** 11 항목
+8. **사용자 시각 검토 Loop** (필요 시)
+
+## Embedded orchestrate-audit pattern (v1.5)
+
+`references/` 7 파일 self-contained:
+- `worker_template.md` — Worker prompt skeleton (anti-simplification 7 clause)
+- `auditor_template.md` — Auditor prompt skeleton (재측정 mandatory + 5단계)
+- `auditor_user_reviewable_template.md` — 사용자 검증 가능 enhanced Auditor (evidence-first + numeric triple + rollback path)
+- `topology_guide.md` — Star/Chain/Swarm/Escalating topology 선택
+- `session_init.md` — `/tmp/orchestrate_runs/<TIMESTAMP>_rfp_<id>/` 디렉토리 생성
+- `kosis_setup.md` — KOSIS API key 셋업 (Worker A 보강)
+- `worker_f_prompt.md` — Worker F WebSearch prompt (v1.1.0 도입)
+
+### Anti-pattern 5 (orchestrate-audit 이식)
+1. ❌ Fire-and-forget Workers (Auditor 없이 dispatch)
+2. ❌ Auditor가 Worker 로그만 read (재실행 X)
+3. ❌ Worker + Auditor 역할 merge (self-audit blind spot)
+4. ❌ Auditor를 모든 Worker 완료 후 batch 실행 (overlap 손실)
+5. ❌ Workers 간 file scope 침범 (sequential 강제됨)
+
+### Failure mode 3 (orchestrate-audit 이식 + RFP 도메인 적용)
+1. **Environmental drift** — Worker A scripts-runtime env 갖추면 도시형 proxy 8건 측정, 다른 env에서 0건. Mitigation: Worker A가 fetch 명령 + 필터를 anomalies.md에 명시
+2. **Cascading pre-existing bug** — Worker A pricing_3 51,351억 1000x 단위 오류 → Worker D가 swap 시 시행사 PT 신뢰 붕괴. Mitigation: Auditor A의 ±0.01% 재계산 mandatory
+3. **Skipped verification** — Worker D `tsc --noEmit` 통과 후 "DGO 8/8 PASS" 자가집계 → Final Auditor 재측정 시 page chrome `PAGE N/11` 11건 발견. Mitigation: Final Auditor 11 항목 mandatory 재측정 표
+
+## P3·P5·P9·P10·P11 적용 (Phase 1 Quick wins)
+
+### P3 — Worker B essence_diff.md mandatory
+Worker B 산출물 6 → 7 확장: `essence_diff.md` (도시형 vs 아파트+OT 8 본질 차이)
+
+### P5 — Auditor 자체 재측정 표 mandatory
+모든 Auditor (A·B·C·F·E·H·I·D) 출력에 표 mandatory:
+```
+| 항목 | Worker 주장 | Auditor 실측 | 차이 | Critical? |
+```
+
+### P9 — Honest 마킹 강제 (영역별 분리)
+Worker 자가집계 시 영역별 metric 분리 + 미달 영역 surface (Worker F market_narrative 1차 0% 누락 사례 차단)
+
+### P10 — 부동산×문서 매핑 표 11 케이스 (v1.1.0 9 → 11)
+신규 row 추가:
+
+| 부동산종류 | 문서종류 | 매칭 PPTX | 핵심 자료조사 | 분량 | 주의 |
+|-----------|---------|----------|------------|------|------|
+| **도시형생활주택** | **RFP 응답** | ★250414 (generic) | MOLIT (OFTrade proxy) + KOSIS 1-2인가구 + 정책 brief | 11쪽 | **본질 차이 footnote 8건 강제 (P3)** |
+| 노인복지주택 | 마케팅 전략 | 신안 generic | KOSIS 연령별 | 30~40쪽 | 노년층 narrative |
+
+### P11 — 메타-실행 일치 검증
+Worker 산출물 meta 필드 (filter, period, n) ↔ 실행 결과 일치 cross-validate. Auditor 출력에 표 mandatory:
+```
+| meta 필드 | declared | actual | match? |
+```
+
+## P13·P14·P15 적용 (Phase 2.5 — v1.5 신설)
+
+### P13 — Layout Compositor (overflow auto-fix)
+
+**책임**: Horizontal/vertical overflow 검출 + 자동 fix 룰 ranked 적용 + 표지 footer bottom-pinned 검증
+
+**Auto-fix 4 레벨**:
+- Lv1 (~10mm 초과): font-size -0.5pt / line-height -0.05 / nowrap 해제
+- Lv2 (~30mm 초과): word-break: keep-all + overflow-wrap: anywhere / 컬럼 비율 조정
+- Lv3 (~50mm 초과): 콘텐츠 압축 (KPI 박스화 / 표 row 축소)
+- Lv4 (불가): 페이지 분리
+
+**산출물**: `worker_layout/overflow_diagnostic.md` + `worker_layout/applied_patches.md`
+
+### P14 — Copy Editor (워딩 직관성·설득력) — 3-place
+
+**(1) Worker H 정식 신설** — Phase 2.5 dispatch
+- v6 HTML 거버닝 메시지 9 + 표지 lead + 본문 워딩 검수
+- 6 규칙 평가 + rewrite spec produce
+- 산출물: `worker_h/wording_review.md`
+
+**(2) DGO Gate 11 신설** — 자동 grep 룰
+- 약어 풀이 누락: `1Q26 / R&D / GBC / TIA / KPI / BEP / IRR` (cite 없음)
+- 단위 누락: `38.3대 1` / `7,462` (단위 없는 숫자)
+- 영어 혼용 (콘텐츠): `proxy / mix / unit / baseline / risk`
+- 술어 미명시: 한 줄 거버닝 메시지에 서술어 부재
+
+**(3) 거버닝 메시지 6번째 규칙 신설** (v1.2.0 5 → 6)
+6. **누구나 이해 (직관성)**: 약어 즉시 풀이 + 단위 명시 + 도메인 용어 한국어화 + 술어 명확. 도메인 외 사람도 한 번에 파악 가능. **충돌 시 직관성 > 자수 (30-50자 룰)**
+
+| # | 항목 | 예시 (X) | 예시 (O) |
+|---|------|---------|---------|
+| 6 | 직관성 | "1Q26 청약 13분기 최저(38.3대 1)·강남3구 270.96대 1 — 본 PJT 도시형 proxy 7,462 기준으로 산정한다" | "서울 청약경쟁률 13분기 최저(38.3대 1)·강남3구 270.96대 1 — 도시형 평당 7,462만원에서 분양가를 산정한다" |
+
+### P15 — Per-Page Reviewer (Worker I)
+
+**책임**:
+1. **콘텐츠-페이지 의미 fit**: 각 페이지 보조 elements (footnote·KPI·image) 페이지 main theme 의미 일치
+2. **자료 gap 페이지별** 식별
+3. **디자인 재검수**: 페이지 hierarchy / 시각 균형 / 컴포넌트 / spacing
+
+**Special focus**: 본질 차이 #N → 페이지 매핑 의미 fit 매트릭스 (인덱스 매핑 ✗, 의미 매핑 ✓)
+
+**산출물**: `worker_i/per_page_review.md` (11 페이지 매트릭스: theme · 콘텐츠 · 의미 fit · 자료 gap · 디자인)
+
+## DGO 8 → 11 Gate (v1.5)
+
+기존 8 Gate (v1.2.0) + Gate 9·10·11:
+
+| Gate | 검증 |
+|------|------|
+| 1 | 페이지 fit (≤ 11쪽 또는 본문 11 + 별첨 N) |
+| 2 | A4 가로 mediabox |
+| 3 | 부정사전 0 hits |
+| 4 | 메타 영문 어휘 0 (콘텐츠) |
+| 5 | nowrap ≥ 15 |
+| 6 | Tone B 5 토큰 일치 |
+| 7 | Cross-link 무결성 (Worker A → swap) |
+| 8 | 좌측 강조선 anti-pattern 0 |
+| **9** | **Cross-link strict (`[Worker A 산출]` 마커 외부 추측값 0)** |
+| **10** | **Meta-execution 일치 (선언 ≡ 실행)** |
+| **11** | **거버닝 메시지 직관성 (약어 풀이 + 단위 + 영어 혼용 + 술어)** |
+
+## v1.5 Live Evidence (이 세션)
+
+| Source | Critical 발견 | 강화된 Proposal |
+|--------|--------------|----------------|
+| Worker A → Auditor A | 1000x 단위 / meta-execution mismatch | P5·P11 |
+| Worker B | 8 본질 차이 / 9 단지 풀 / 양병천 8 fact | P3·P5 |
+| Worker B → Auditor B | 8/8 Gate / **p.8 fit risk ~50mm** | P12 (사전 fit 시뮬레이션 후보) |
+| Worker C | 5,820~6,420 모호성 / 정액 1.36% silent drift / 누적 26 산술 오류 | P4·P5·P11 |
+| Worker C → Auditor C | 5/8 Gate / 3 critical | P4·P5 |
+| Worker F → Auditor F | 1차 source 41% vs 54% / market 1차 0% 누락 | P5·P9 |
+| RO Round 1B | C2 정액 35.73억 → 회사 손익 4.66억 (frame 없으면 비현실) | P1 (Worker E) |
+| 사용자 시각 검토 ① | 표지 footer not bottom-pinned | **P13 Layout Compositor** |
+| 사용자 시각 검토 ② | p.5 우측 잘림 (.profile-table nowrap + 강남 swap 긴 텍스트) | **P13 Layout Compositor** |
+| 사용자 시각 검토 ③ | p.6 거버닝 비직관 | **P14 Copy Editor (Worker H)** |
+| 사용자 시각 검토 ④ | p.9 #8 동음이의 / p.11 #6 동어 반복 | **P15 Per-Page Reviewer (Worker I)** |
+| Worker H 라이브 dispatch | DGO Gate 11 자동 grep 46건 / fact 변경 0 | P14 효용 검증 |
+| Worker I 라이브 dispatch | 11 페이지 매트릭스 / 본질 차이 # remap 4 critical | P15 효용 검증 |
+
+## v1.5 추가 레슨런 (L21~L25)
+
+| # | 발견 | 일반화 |
+|---|------|--------|
+| **L21** | DGO 8 Gate는 정량 검증, 사용자 시각 검토는 의미·뉘앙스 영역 | DGO 자동 검증 layer 상한 명확. Worker H/I/Layout으로 의미 layer 일부 자동화 |
+| **L22** | Worker D essence_diff #N → 페이지 인덱스 단순 매핑 = 의미 fit 약함 | 본질 차이 # remap은 의미 매핑 mandatory (P15) |
+| **L23** | CSS grid 3-row 선언 + children 2개 = row 3 빈 채로 cover-bottom row 2 stuck | grid-row 명시 할당 (`grid-row: 3 + align-self: end`) — Layout Compositor 자동 fix 후보 |
+| **L24** | `.profile-table td.value white-space: nowrap` + 긴 swap 텍스트 = 좌측 col 6fr 비율 초과 → 우측 col page boundary clip | nowrap 항목에 `word-break: keep-all + overflow-wrap: anywhere` 안전망 — Layout Compositor Lv2 |
+| **L25** | v1.2.0 5 규칙은 포맷, 직관성은 별개 — p.6 사례가 5 규칙 모두 통과하지만 도메인 외 사람 못 읽음 | 거버닝 6번째 규칙 (직관성) 신설 + 충돌 시 직관성 > 자수 |
+
+## v1.5 변경사항 요약
+
+- ✅ **Self-contained Orchestrator** (orchestrate-audit pattern embed, references/ 7 파일)
+- ✅ **Phase 2.5 신설** (Worker H Copy Editor + Worker I Per-Page Reviewer + Layout Compositor)
+- ✅ **DGO 8 → 11 Gate** (Cross-link strict / Meta-execution / 거버닝 직관성)
+- ✅ **거버닝 메시지 5 → 6 규칙** (직관성 + 충돌 시 직관성 > 자수)
+- ✅ **부동산×문서 매핑 9 → 11 케이스** (도시형 + RFP 응답 + 노인복지 + 마케팅)
+- ✅ **Worker A·F reproduction.md mandatory** (P7)
+- ✅ **Auditor 재측정 표 mandatory** (P5)
+- ✅ **Honest 마킹 영역별 분리** (P9)
+- ✅ **L21~L25 추가 레슨**
+
+근거: v6 풀덱 stress-test 세션 (Worker A·B·C·F·D + 5 Auditor + Worker H·I 라이브 dispatch + 사용자 시각 검토 4 critical 발견) — design doc `~/Desktop/brother/2026-05-05-rfp-orchestrator-v1.5-design.md` (745 lines, P1~P15 + Q1~Q12)
+
+**다음 세션부터 자동 트리거** (Crystal CLAUDE.md L14 함정 — 같은 세션 미반영).
+
