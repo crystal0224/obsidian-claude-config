@@ -399,6 +399,9 @@ Main:
 - 매 세션 RO 보고를 시계열로 누적 (`docs/rfp-history/`)
 - ~~멀티 도메인 (분양성 보고서·적정 분양가·시장 분석 별 spec 분기)~~ → **v1.1.0 Phase 0 분기에서 구현**
 - ~~★250414 외 다른 reference RFP 추가 (260416 신안군·청라의료복합·동탄 B1)~~ → **v1.1.0 Worker B 도메인 분기에서 구현**
+- **`/dgo-check` Python wrapper** (`~/.claude/skills/rfp-orchestrator/scripts/dgo_check.py`) — DGO 8 Gates bash 스크립트를 Python 모듈로 분리 + diagnostic 슬래시 커맨드 (`~/.claude/commands/dgo-check.md`) 호출. Worker D (PO) 가 매 변경 후 자동 실행
+- **Anti-pattern auto-fix Python** (`scripts/anti_pattern_fixer.py`) — 9 AP 유형 grep 자동 감지 + 정정. AP-1 (좌측 강조선) → border-left 제거 + top/bg 대체. AP-2~9 (헤더 sub / 표지 더미 / footer source / float 사진 / 명사 종결 / spacing) 정합식 자동. `--fix` 플래그로 dry-run vs apply 분리
+- **`/regen-pdf` 슬래시 커맨드** (`~/.claude/commands/regen-pdf.md`, v1.4.0 도입) — Chrome headless + pypdf 검증 일체화. mutation 타입
 
 ---
 
