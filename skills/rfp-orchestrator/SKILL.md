@@ -2,7 +2,7 @@
 name: rfp-orchestrator
 description: 한국 부동산 분양 RFP·분양성 보고서·적정 분양가 산정 풀덱 작성을 위한 2-tier 오케스트레이터. Research Orchestrator (자료조사+검증+추가조사 iteration) → Presentation Orchestrator (HTML 통합+PDF+on-demand 자료 보완). 트리거 "RFP 풀덱", "분양 참여 제안서", "분양성 보고서", "적정 분양가 산정", "분양 제안서". brother/ 폴더 작업 시 자동 활성.
 author: Crystal
-version: 1.3.0
+version: 1.4.0
 ---
 
 # RFP Orchestrator — 한국 부동산 분양 풀덱 2-tier 파이프라인
@@ -945,3 +945,163 @@ Main = Crystal 대화 + 모든 Agent dispatch 통제 + DGO 실행 + callback 처
 - ✅ **에이전트 vs 룰 분기 명세 표**
 
 근거: v5 세션 9 라운드 사용자 시각 검토 + Worker F 도입 + SKILL 점검 결과
+
+---
+
+# v1.4.0 (2026-05-04) — 자료 수집·분석 정리 강화 + 파이프라인 개선
+
+> 사용자 강조: **"자료 수집과 분석 정리가 1차적으로 매우 중요"**.
+> v5 세션 후반 Worker G rate limit + Worker F WebSearch 결과 분석 정리 → Phase 1A·1B 강화.
+
+## 자료 수집 Mandatory 확장 (Phase 1A 강화)
+
+### 정량 mandatory 4 source (Worker A)
+기존 default = MOLIT only → 풍성한 default = **4 source 의무**.
+
+| Source | API/방법 | mandatory? | fallback |
+|--------|---------|------------|---------|
+| **MOLIT 실거래가** | RTMS API (Apt/RH/OF Trade) | YES | — |
+| **KOSIS 인구·세대·이동** | KOSIS OpenAPI (DT_1B040A3, DT_1B26001) | YES | CSV 다운로드 |
+| **청약Home 청약경쟁률** | 웹 스크래핑 | YES | 매체 기사 cite |
+| **KB부동산/한국부동산원 시세** | KB Liiv ON / R-ONE | YES | 매체 기사 cite |
+| 사업체 통계 (선택) | KOSIS DT_1J17001 | OPT | — |
+| 강서구청 인허가 (선택) | WebFetch | OPT | — |
+
+### 정성 mandatory 4 산출물 (Worker F)
+기존 v1.1.0 정의 그대로 + **출처 다양성 ≥ 50% 1차 source**.
+
+### 자료 충분성 기준 (Auditor A·F 검증)
+
+| 영역 | 기준 |
+|------|------|
+| 정량 row 수 | ≥ 100 row (MOLIT 4개월) |
+| 정량 source | ≥ 4 source (mandatory 4 충족) |
+| 정량 시계열 | ≥ 3 시점 (4·6·12개월) |
+| 정성 cite | ≥ 5 cite |
+| 1차 source | ≥ 50% (정부·국토부·서울시·구청) |
+| 일자 명시 | 100% (cite 모든 항목) |
+
+미달 시 → Round 2 자동 dispatch (수동 결정 의존 X).
+
+## Round 1B 분석 정리 단계 강화 (RO sub-task 확장)
+
+기존 v1.0 RO sub-task = cross-link 검증 + 결정 압축. v1.4.0 확장:
+
+### 1. Cross-reference Mandatory
+모든 Worker 산출물 간 cross-link 자동 검증:
+- Worker A baseline → Worker C 분양가 % 산정 (필수 참조)
+- Worker B 양병천 약력 (★250414) → Worker C 약력 일치
+- Worker F 호재 → Worker A 시세 narrative 일치
+- Worker A 인근 단지 → Worker F 청약 reference 중복 검증
+
+### 2. 충돌 Cross-validate
+- 11,100 vs 10,583 같은 fact 충돌 → Auditor B+C 동시 검증
+- 시기·일자 충돌 → Worker B vs F 비교
+
+### 3. 결정 카테고리 압축 (16 → 4)
+- C1 Cross-link (자동 patch, Crystal 승인만)
+- C2 산출 방식 (Crystal 선택)
+- C3 Auditor 충돌 (Crystal 결정)
+- C4 narrative 톤 (Crystal 도메인 직관)
+
+### 4. 자료 부족 영역 식별
+- 정량 미달 → Round 2 추가 fetch spec
+- 정성 cite 부족 → Worker F Round 2
+- 충돌 미해결 → Crystal 결정 trigger
+
+### 5. 재현 가능성 보고
+- 모든 fetch 명령어·검색 키워드 audit_summary.md 누적
+- 다음 세션 동일 자료 재현 가능
+
+## 반복 사이클 Mandatory (자동화)
+
+기존 v1.3.0 = Crystal 결정 의존 → v1.4.0 = 일부 자동:
+
+| 트리거 | 자동/수동 | 처리 |
+|-------|---------|------|
+| 자료 mandatory 미달 | **자동** | Round 2 dispatch (수동 결정 X) |
+| Worker silent drift | 자동 | RO patch spec |
+| DGO Gate FAIL | 자동 | Recovery Pattern (U3) |
+| PO callback | 자동 | Main → RO 재호출 |
+| Auditor 충돌 (B vs C) | 수동 | Crystal C3 결정 |
+| User Visual Review 정제 요청 | 수동 | User Visual Review Loop |
+| 부정사전 trigger | **자동** | 즉시 대규모 재작업 |
+
+## 파이프라인 개선사항 (v5 세션 발견 5)
+
+### P1 — Worker Rate Limit Graceful Resume
+- **발견**: Worker G가 31 tool uses 후 rate limit (server temporary)
+- **처리**: Main이 take-over → DGO 검증 → swap 부분 완료 확인 → 추가 swap
+- **일반화**: Worker 실패 시 Main take-over + partial state 검증 + graceful resume
+- **SKILL 추가**: Failure Mode Recovery 표에 "Worker rate limit" 항목 추가 (U3 보강)
+
+### P2 — DGO 8 Gate 즉시 자동 fix
+- **발견**: DGO Gate 8 (좌측선) FAIL 2 hits → 즉시 자동 fix 가능 (border-left → border-top)
+- **처리**: Anti-pattern grep + replace 자동
+- **일반화**: anti-pattern 검출 → 자동 fix 우선 (사용자 보고 X), 사용자 보고는 의미·뉘앙스만
+
+### P3 — 같은 세션 SKILL 누적 미반영 명시
+- **발견**: v1.0 → v1.1 → v1.2 → v1.3 → v1.4 같은 세션 누적
+- **처리**: 모든 변경 다음 세션부터 자동 트리거 (Crystal CLAUDE.md L14 함정)
+- **일반화**: 사용자에게 매 SKILL 업데이트 시 명시 — "다음 세션부터"
+
+### P4 — 페이지 라벨 표준화 (00./01./[참고]/[별첨])
+- **발견**: p.3 "#." 어색 / p.4 "[참고]" / p.5~p.11 "01.~07."
+- **처리**: 라벨 패턴 표준
+- **일반화**:
+  - **숫자**: 본문 메인 항목 (`01.`, `02.` ...)
+  - **`#.`**: 회사 소개 등 메인 진입 (또는 `00.` 으로)
+  - **`[참고]`**: 본문 보조 페이지 (실적·데이터 등)
+  - **`[별첨]`**: 본문 외 추가 자료 (정책 brief·인근 단지 reference 등)
+  - **`CONTENTS`**: 목차 페이지
+
+### P5 — 사용자 응답 패턴 확장
+- **발견**: "go all 커밋하고 진행" 같은 복합 응답 (결정 + git commit + 다음 단계)
+- **처리**: Main이 분리 처리 (Crystal 결정 OK → commit → 다음 작업)
+- **일반화**: 사용자 응답 인터페이스 (U6) 보강
+  - `(결정) 커밋하고 진행` = 결정 + git commit + 진행
+  - `푸시도 해주고` = git push 명시
+  - `(결정) skip` = 결정 무시
+
+## 추가 레슨런 L18~L20
+
+| # | 발견 | 일반화 |
+|---|------|--------|
+| **L18** | Worker rate limit (server temporary) → Main take-over | Worker 실패 시 partial state 검증 + Main 직접 진행 (callback 대안) |
+| **L19** | DGO Gate FAIL 즉시 자동 fix | Anti-pattern 검출 → 자동 fix 우선 (의미·뉘앙스만 사용자 보고) |
+| **L20** | Push 별도 명시 응답 처리 | git commit 과 push 분리 (Crystal CLAUDE.md "DO NOT push without explicit ask") |
+
+## 자료 수집·분석 정리 단계 (사용자 강조 영역)
+
+```
+Phase 1A — 자료 수집 (mandatory 4 source 정량 + 4 산출물 정성)
+  ↓
+Phase 1A-Audit — 자료 충분성 검증
+  ├─ 정량 ≥ 100 row / ≥ 4 source / ≥ 3 시점
+  └─ 정성 ≥ 5 cite / ≥ 50% 1차 source / 100% 일자
+  ├─ 충족 → Round 1B
+  └─ 미달 → 자동 Round 2 dispatch (수동 결정 X)
+  ↓
+Round 1B — 분석 정리 (RO sub-task)
+  ├─ Cross-reference 자동 (Worker 간 silent drift 방지)
+  ├─ 충돌 Cross-validate (fact-check)
+  ├─ 결정 압축 (16 → 4 카테고리)
+  ├─ 자료 부족 영역 식별 (Round 2 spec)
+  └─ 재현 가능성 보고 (모든 fetch 명령어·검색 키워드)
+  ↓
+Crystal 4 카테고리 batch 결정
+  ↓
+Phase 2 — Worker D + DGO 매 변경 자동
+```
+
+## v1.4.0 변경사항 요약
+
+- ✅ **Phase 1A mandatory 4 source 정량 + 4 산출물 정성** (자료 수집 강화)
+- ✅ **자료 충분성 기준 6** (Auditor 검증)
+- ✅ **Round 1B 분석 정리 5 단계** (cross-ref / 충돌 cross-validate / 결정 압축 / 부족 식별 / 재현 가능성)
+- ✅ **반복 사이클 자동화** (mandatory 미달 / Recovery / PO callback / 부정사전 자동, Auditor 충돌 / Visual Review 수동)
+- ✅ **파이프라인 개선 P1~P5** (Worker rate limit graceful / DGO 자동 fix / SKILL 누적 미반영 명시 / 페이지 라벨 표준 / 사용자 응답 확장)
+- ✅ **L18~L20 추가 레슨**
+
+근거: v5 세션 Worker G rate limit + DGO 8 Gate 매 변경 검증 + 사용자 자료 수집·분석 강조
+
