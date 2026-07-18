@@ -139,3 +139,58 @@ if (obs.length === 0) {
 **적용 사례**: 2026-05-03 observation DashboardHero (commit 6ac24f5). W-E-Audit Playwright 캡처 후 발견.
 
 **관련 부정사전**: 헐빈 (여백 과다 / 정보 밀도 부족).
+
+---
+
+## § 7. Vercel Hobby Authentication + Supabase key 함정 (2026-05-05+)
+
+**증상 패턴**: production deployment 의 static (`/`) 은 200 정상인데 `/api/*` 만 timeout/hang. 또는 fetch 가 영원히 pending. browser DevTools Network 에서 `/api/admin/auth` 요청이 끝없이 회전.
+
+**원인**: Vercel Hobby plan 의 "Vercel Authentication" 기능이 production deployment 의 API routes 전체에 SSO 인증 레이어를 강제. static asset 은 Vercel CDN 에서 직접 응답 → 통과. API function 만 인증 redirect 로 막힘. Hobby 에서 toggle 자체가 회색일 수 있음 (또는 "Disabled" 옵션이 Pro 전용).
+
+**진단 명령**:
+```bash
+curl -i -s -o /dev/null -w "code=%{http_code} time=%{time_total}\n" --max-time 10 https://<deploy>.vercel.app/
+curl -i -s -o /dev/null -w "code=%{http_code} time=%{time_total}\n" --max-time 10 https://<deploy>.vercel.app/api/<route>
+```
+- `/` = 200, `/api/*` = 000 (timeout) → Vercel Hobby Auth 차단 확정
+- 둘 다 401 → Supabase / 다른 API key 문제
+- 직접 deploy URL (`assapp-xxx-crystals-projects.vercel.app/api/*`) → 401 + JSON `{"error":{"code":"401","message":"Protected deployment"},"protection":{"vercel_auth_enabled":true}}` 반환되면 확정
+
+**대응 전략**:
+1. **Pro upgrade** — 가장 단순. Vercel Authentication toggle 활성.
+2. **다른 host 로 admin 분리** — Netlify Functions 등. main app 은 Vercel 유지.
+3. **Apps Script + Google Sheets 우회** ★ — admin 이 read-only dashboard 라면 가장 실용적. Supabase REST API 를 Apps Script `UrlFetchApp` 으로 호출 → Sheet sync. browser 도메인 무관 (google.com).
+
+### Supabase key 시스템 (2025+ 변경)
+
+**3 key 레이어 구분 — 혼동 빈번**:
+
+| 위치 | 형식 | 용도 | Apps Script / browser |
+|------|------|------|---------------------|
+| Settings → API Keys → **Publishable / secret** (신규) | `sb_publishable_*` / `sb_secret_*` | client / server | ❌ `sb_secret_*` 는 browser User-Agent fingerprint 로 차단됨 |
+| Settings → API Keys → **Legacy** | JWT (`eyJhbGc...`) `anon` / `service_role` | client / server | ✅ `service_role` JWT 가 PostgREST API key |
+| Settings → **JWT Keys** | Standard signing key | 서버가 토큰 발급할 때 sign 용 | ❌ API key 아님 (사용 시 401 invalid) |
+
+**해결**: Apps Script / browser 환경에서 Supabase 호출 시 **Legacy `service_role` JWT** 만 사용. `/settings/api-keys/legacy` 페이지의 secret 라벨이 붙은 행.
+
+### supabase CLI 일괄 패턴
+
+```bash
+npx supabase link --project-ref <ref>
+npx supabase db push --include-all
+npx supabase migration list  # remote 적용 확인
+```
+
+`db push` 는 자동으로 `[Y/n]` prompt 진행. migration 파일은 `supabase/migrations/<timestamp>_<name>.sql`. INSERT 도 migration 으로 push 가능 (`on conflict do nothing` 으로 idempotent).
+
+**관련 부정사전**: 헐빈 (admin 화면 차단으로 Sheet 우회 시 "Sheet 만으론 부족하다" 인상 회피 — KPI / heatmap / cross-tab 까지 채워 정보 밀도 확보).
+
+**적용 사례**: 2026-05-05 assapp `/admin` 페이지 — Phase 1+2 React UI 구현 완료 했으나 Vercel Hobby Auth 로 외부 접근 차단 → Apps Script + Sheets 우회로 운영. 코드는 그대로 남김 (Pro upgrade 시 즉시 활성).
+
+## black PostToolUse 훅 × 줄수 지시 충돌 (2026-07-18)
+
+전역 `~/.claude/hooks/post-tool-use.py`가 모든 세션(서브에이전트 포함)의 `.py` Write/Edit 직후 자동 포매팅을 실행 — ruff 미설치 머신에서는 black 폴백. black은 `--line-length`와 무관하게 압축 1줄 복합문(`if x: return y`)을 무조건 2줄로 쪼개서 물리 줄수가 크게 팽창한다 (실측: 302줄 원본 → 536줄, 1.77배).
+
+**함정**: 서브에이전트에 "전체 N줄 이내" 같은 줄수 하드룰을 지시하면, 에이전트가 예산 내로 작성해도 훅이 팽창시켜 규칙 위반처럼 보임. 팽창분은 추가 코드가 아니라 포매팅 아티팩트.
+**처방**: 줄수 게이트를 걸기 전에 자동 포매터 개입 여부 확인. 걸어야 하면 "포매터 적용 전 기준" 명시 또는 논리 복잡도(함수 수·기능 수) 기준으로 대체. 우회(Bash heredoc 직접 쓰기)는 다음 편집에서 재포맷돼 diff가 흔들리니 비추천 — 포맷된 상태를 기준으로 수용.
