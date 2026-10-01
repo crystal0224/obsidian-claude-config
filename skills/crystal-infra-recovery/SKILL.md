@@ -15,6 +15,7 @@ Mac (APFS) · Vite build · Obsidian 편집기 자동저장의 함정 3개 모�
 - "file:// 빈 화면", "type=module CORS", "vite-plugin-singlefile", "VDI offline SPA"
 - "한글 zip 깨짐", "unzip mojibake", "ZIP UTF-8 flag", "ASCII filename"
 - "Playwright visual audit", "헤드리스 캡처", "스크린샷 점수화"
+- "PIPESTATUS", "pipestatus", "exit= 빈 값", "rm -rf $VAR 차단", "삭제 가드 건너뜀"
 
 ## 1. 편집기 자동저장의 인라인 CSS 삽입 주의
 
@@ -194,3 +195,19 @@ npx supabase migration list  # remote 적용 확인
 
 **함정**: 서브에이전트에 "전체 N줄 이내" 같은 줄수 하드룰을 지시하면, 에이전트가 예산 내로 작성해도 훅이 팽창시켜 규칙 위반처럼 보임. 팽창분은 추가 코드가 아니라 포매팅 아티팩트.
 **처방**: 줄수 게이트를 걸기 전에 자동 포매터 개입 여부 확인. 걸어야 하면 "포매터 적용 전 기준" 명시 또는 논리 복잡도(함수 수·기능 수) 기준으로 대체. 우회(Bash heredoc 직접 쓰기)는 다음 편집에서 재포맷돼 diff가 흔들리니 비추천 — 포맷된 상태를 기준으로 수용.
+
+## zsh 종료 코드 가드 × `rm -rf "$VAR"` 차단 (2026-10-01)
+
+Claude Code 의 Bash 도구는 사용자 셸(zsh)로 돈다. bash 문법으로 쓴 "검증 통과 시에만 삭제" 가드가 두 군데서 걸린다.
+
+**함정 1 — `${PIPESTATUS[0]}` 는 zsh 에서 비어 있다** (zsh 는 소문자 `$pipestatus[1]`). `cmd | tail; rc=${PIPESTATUS[0]}; [ "$rc" = "0" ] && rm …` 는 항상 거짓이라, 검증은 통과했는데 삭제가 조용히 건너뛰어진다. 출력에 `exit=` 처럼 값이 비어 보이면 이것이다.
+**처방**: 파이프를 끊고 종료 코드를 직접 본다.
+```bash
+if rclone check "<로컬>" "<원격>" --one-way > check.log 2>&1; then …삭제…; else tail -3 check.log; fi
+```
+스크립트 파일로 뺄 때는 `#!/bin/bash` 를 달아 bash 로 돌린다.
+
+**함정 2 — 내장 안전 검사가 `rm -rf "$VAR/…"` 를 막는다**. 변수가 비면 `/` 로 펼쳐질 수 있는 대상은 사람 승인 없이는 실행되지 않고, 한 명령 안의 다른 줄까지 통째로 실행되지 않는다.
+**처방**: 리터럴 절대 경로를 쓰거나 `"${VAR:?}/…"` 로 쓴다(비면 셸이 멈춤). 쪼개거나 다른 도구로 우회하지 않는다.
+
+**적용 사례**: 2026-10-01 Drive 업로드 뒤 로컬 삭제 — 가드를 세 번 다시 썼다. 고정본: `~/.claude/scripts/gdrive_verified_sync.sh`.
